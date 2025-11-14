@@ -3,5 +3,5 @@ git init
 git add .
 git commit -m "Initial commit"
 git branch -M main
-git remote add origin https://github.com/noureddineladjenef-rgb/telegram-affiliate-bot.git
+git remote add origin https://github.com/noureddineladjenef-rgb/telegram-affiliate-bot.git1
 git push -u origin main
