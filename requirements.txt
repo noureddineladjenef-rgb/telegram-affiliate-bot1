@@ -1,0 +1,87 @@
+import os
+from telegram import Bot, Update, ParseMode
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+
+# جلب المتغيرات من البيئة
+BOT_TOKEN = os.getenv("BOT_TOKEN", "6986501751:AAF0Ra1lpXvdob21IQ9QORLCpclXPUPFyes")
+AFFILIATE_ID = os.getenv("AFFILIATE_ID", "503368")
+
+bot = Bot(token=BOT_TOKEN)
+
+# قائمة الملفات المتاحة للإرسال
+FILES = {
+    "bot": "bot.py",
+    "manual": "guide.pdf"
+}
+
+def start(update: Update, context: CallbackContext):
+    message = (
+        "مرحبًا بك! 👋\n\n"
+        "أرسل رابط منتج من AliExpress وسأرسل لك معلوماته مع رابط الشراء.\n"
+        "أوامر البوت:\n"
+        "/getfile <اسم الملف> - للحصول على ملف.\n"
+        "/help - لمزيد من المساعدة."
+    )
+    update.message.reply_text(message)
+
+def help_command(update: Update, context: CallbackContext):
+    message = (
+        "أوامر البوت المتاحة:\n"
+        "/start - ترحيب بالبوت.\n"
+        "/getfile <اسم الملف> - إرسال الملف المطلوب.\n"
+        "أرسل رابط AliExpress لأي منتج للحصول على التفاصيل ورابط الأفلييت."
+    )
+    update.message.reply_text(message)
+
+def get_file(update: Update, context: CallbackContext):
+    if not context.args:
+        update.message.reply_text("❌ من فضلك اكتب اسم الملف بعد الأمر.")
+        return
+    key = context.args[0].lower()
+    if key in FILES:
+        path = FILES[key]
+        try:
+            with open(path, "rb") as f:
+                update.message.reply_document(f, filename=path, caption=f"📄 الملف: {path}")
+        except FileNotFoundError:
+            update.message.reply_text("❌ الملف غير موجود على السيرفر.")
+    else:
+        update.message.reply_text("❌ هذا الملف غير متاح.")
+
+def handle_message(update: Update, context: CallbackContext):
+    url = update.message.text.strip()
+    if "aliexpress.com" not in url:
+        update.message.reply_text("❌ أرسل رابط صحيح من AliExpress أو استخدم أحد الأوامر.")
+        return
+    try:
+        product_id = url.split(".html")[0].split("/")[-1].split(".")[-1]
+        # بيانات وهمية يمكن ربط API لاحقًا
+        product_name = "هاتف OnePlus Ace5 المحمول"
+        product_price = "435.60$"
+        product_discount = "10%"
+        product_image = "https://ae01.alicdn.com/kf/SampleImage.jpg"
+        affiliate_url = f"{url}?aff_fcid={AFFILIATE_ID}&aff_platform=default&dp=c"
+        message = (
+            f"📦 <b>اسم المنتج:</b> {product_name}\n"
+            f"💰 <b>السعر الحالي:</b> {product_price}\n"
+            f"🏷️ <b>الخصم:</b> {product_discount}\n"
+            f"🔗 <b>رابط الشراء:</b> [اضغط هنا]({affiliate_url})"
+        )
+        bot.send_photo(chat_id=update.message.chat_id, photo=product_image, caption=message, parse_mode=ParseMode.HTML)
+    except Exception as e:
+        update.message.reply_text(f"❌ حدث خطأ أثناء معالجة الرابط.\n{e}")
+
+def main():
+    updater = Updater(BOT_TOKEN, use_context=True)
+    dp = updater.dispatcher
+
+    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(CommandHandler("help", help_command))
+    dp.add_handler(CommandHandler("getfile", get_file))
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
+
+    updater.start_polling()
+    updater.idle()
+
+if __name__ == "__main__":
+    main()
